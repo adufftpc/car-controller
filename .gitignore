@@ -1,0 +1,8 @@
+*.elf
+*.hex
+*.map
+*.lst
+*.o
+*.d
+*.rar
+*.zip
