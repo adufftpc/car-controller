@@ -1,7 +1,7 @@
-freertos.c:114:13:configureTimerForRunTimeStats	4	static
-freertos.c:119:22:getRunTimeCounterValue	4	static
-freertos.c:130:6:MX_FREERTOS_Init	8	static
-freertos.c:184:6:StartDefaultTask	16	static
-freertos.c:215:6:StartJoistickTask	96	static
-freertos.c:277:6:StartMotorTask	16	static
-freertos.c:295:6:StartSteerTask	16	static
+freertos.c:116:13:configureTimerForRunTimeStats	4	static
+freertos.c:121:22:getRunTimeCounterValue	4	static
+freertos.c:132:6:MX_FREERTOS_Init	8	static
+freertos.c:186:6:StartDefaultTask	16	static
+freertos.c:217:6:StartJoistickTask	104	static
+freertos.c:280:6:StartMotorTask	24	static
+freertos.c:336:6:StartSteerTask	16	static

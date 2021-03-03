@@ -31,6 +31,8 @@
 #include "gpio.h"
 #include "usart.h"
 #include "adc.h"
+#include "tim.h"
+#include "queue.h"
 //#include "iwdg.h"
 /* USER CODE END Includes */
 
@@ -146,10 +148,10 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the queue(s) */
   /* creation of qMotor */
-  qMotorHandle = osMessageQueueNew (64, sizeof(int16_t), &qMotor_attributes);
+  qMotorHandle = osMessageQueueNew (64, sizeof(uint16_t), &qMotor_attributes);
 
   /* creation of qSteer */
-  qSteerHandle = osMessageQueueNew (64, sizeof(int16_t), &qSteer_attributes);
+  qSteerHandle = osMessageQueueNew (64, sizeof(uint16_t), &qSteer_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -248,16 +250,17 @@ void StartJoistickTask(void *argument)
 
       if (abs(posSteer - adcSteer) > JS_TOLERANCE) {
         posSteer = adcSteer;
-        xprintf(&huart1, "Steer: %4d\n", posSteer);
+        //xprintf(&huart1, "Steer: %4d\n", posSteer);
       }
       if (abs(posMotor - adcMotor) > JS_TOLERANCE) {
         posMotor = adcMotor;
-        xprintf(&huart1, "Motor: %4d\n", posMotor);
+
+        if (uxQueueSpacesAvailable(qMotorHandle)) {
+          xQueueSend(qMotorHandle, &posMotor, portMAX_DELAY);
+        }
+
+        //xprintf(&huart1, "Motor: %4d\n", posMotor);
       }
-
-
-
-      //xprintf(&huart1, "Steer: %4d Motor: %4d\n", adcSteer, adcMotor);
 
       HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t*)&adc, JS_AVG_FACTOR);
     }
@@ -277,10 +280,48 @@ void StartJoistickTask(void *argument)
 void StartMotorTask(void *argument)
 {
   /* USER CODE BEGIN StartMotorTask */
+  uint16_t code;
+  int16_t throttle = 0;
+
+  xprintf(&huart1, "Starting Motor PWM...\n");
+
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    if (uxQueueMessagesWaiting(qMotorHandle)) {
+      if (pdPASS == xQueueReceive(qMotorHandle, &code, portMAX_DELAY)) {
+        // Forward slow decay
+        if (code >= ((ADC_MAX_VALUE / 2) + JS_TOLERANCE)) {
+          throttle = (code * (TIM4->ARR + 1 + 50) / ADC_MAX_VALUE) / 2;
+          throttle = constrain(throttle, 0, (TIM4->ARR + 1));
+
+          TIM4->CCR3 = 0;
+          TIM4->CCR4 = throttle;
+          HAL_GPIO_WritePin(MOTOR_SLEEP_GPIO_Port, MOTOR_SLEEP_Pin, GPIO_PIN_SET);
+        }
+        else if (code < ((ADC_MAX_VALUE / 2) - JS_TOLERANCE)) {
+          throttle = ((ADC_MAX_VALUE / 2) - (code * (TIM4->ARR + 1 + 50) / ADC_MAX_VALUE)) / 2;
+          throttle = constrain(throttle, 0, (TIM4->ARR + 1));
+
+          TIM4->CCR3 = throttle;
+          TIM4->CCR4 = 0;
+          HAL_GPIO_WritePin(MOTOR_SLEEP_GPIO_Port, MOTOR_SLEEP_Pin, GPIO_PIN_SET);
+        }
+        else {
+          throttle = 0;
+
+          TIM4->CCR3 = 0;
+          TIM4->CCR4 = 0;
+          HAL_GPIO_WritePin(MOTOR_SLEEP_GPIO_Port, MOTOR_SLEEP_Pin, GPIO_PIN_RESET);
+        }
+        xprintf(&huart1, "Motor code: %4d; throttle: %4d\n", code, throttle);
+      }
+    }
+
+    osDelay(50 / portTICK_PERIOD_MS);
   }
   /* USER CODE END StartMotorTask */
 }

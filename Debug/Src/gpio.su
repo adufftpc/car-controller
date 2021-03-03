@@ -1,4 +1,4 @@
 gpio.c:42:6:MX_GPIO_Init	40	static
-gpio.c:97:6:ledOn	8	static
-gpio.c:102:6:ledOff	8	static
-gpio.c:107:6:ledToggle	8	static
+gpio.c:105:6:ledOn	8	static
+gpio.c:110:6:ledOff	8	static
+gpio.c:115:6:ledToggle	8	static

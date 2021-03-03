@@ -164,6 +164,10 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+int32_t map(int32_t val, int32_t I_Min, int32_t I_Max, int32_t O_Min, int32_t O_Max)
+{
+    return(((val - I_Min) * ((O_Max - O_Min) / (I_Max - I_Min))) + O_Min);
+}
 
 /* USER CODE END 4 */
 

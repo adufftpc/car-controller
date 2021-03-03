@@ -47,25 +47,27 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define constrain(amt,low,high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+int32_t map(int32_t val, int32_t I_Min, int32_t I_Max, int32_t O_Min, int32_t O_Max);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 #define LED_Pin GPIO_PIN_13
 #define LED_GPIO_Port GPIOC
+#define MOTOR_SLEEP_Pin GPIO_PIN_6
+#define MOTOR_SLEEP_GPIO_Port GPIOB
 #define JOY_BTN_Pin GPIO_PIN_7
 #define JOY_BTN_GPIO_Port GPIOB
-#define JOY_X_Pin GPIO_PIN_8
-#define JOY_X_GPIO_Port GPIOB
-#define JOY_Y_Pin GPIO_PIN_9
-#define JOY_Y_GPIO_Port GPIOB
+#define MOTOR_IN1_Pin GPIO_PIN_8
+#define MOTOR_IN1_GPIO_Port GPIOB
+#define MOTOR_IN2_Pin GPIO_PIN_9
+#define MOTOR_IN2_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 #define LED_BLINK_PERIOD_MS 100
 

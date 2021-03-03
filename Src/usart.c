@@ -132,7 +132,7 @@ size_t xprintf(UART_HandleTypeDef* uartHandle, const char * format, ...)
 
   HAL_UART_Transmit(uartHandle, (uint8_t *)bufNetprintf, bytesSent, 0xFFFF);
 
-  return strlen(bufNetprintf);
+  return bytesSent;
 }
 
 
