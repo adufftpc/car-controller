@@ -97,6 +97,7 @@ int main(void)
   MX_TIM4_Init();
   MX_ADC2_Init();
   MX_USART1_UART_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -164,7 +165,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-int32_t map(int32_t val, int32_t I_Min, int32_t I_Max, int32_t O_Min, int32_t O_Max)
+float map(float val, float I_Min, float I_Max, float O_Min, float O_Max)
 {
     return(((val - I_Min) * ((O_Max - O_Min) / (I_Max - I_Min))) + O_Min);
 }

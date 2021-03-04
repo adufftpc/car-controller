@@ -3,5 +3,5 @@ freertos.c:121:22:getRunTimeCounterValue	4	static
 freertos.c:132:6:MX_FREERTOS_Init	8	static
 freertos.c:186:6:StartDefaultTask	16	static
 freertos.c:217:6:StartJoistickTask	104	static
-freertos.c:280:6:StartMotorTask	24	static
-freertos.c:336:6:StartSteerTask	16	static
+freertos.c:306:6:StartMotorTask	40	static
+freertos.c:364:6:StartSteerTask	48	static

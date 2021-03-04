@@ -54,12 +54,14 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-int32_t map(int32_t val, int32_t I_Min, int32_t I_Max, int32_t O_Min, int32_t O_Max);
+float map(float val, float I_Min, float I_Max, float O_Min, float O_Max);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 #define LED_Pin GPIO_PIN_13
 #define LED_GPIO_Port GPIOC
+#define SERVO_Pin GPIO_PIN_6
+#define SERVO_GPIO_Port GPIOA
 #define MOTOR_SLEEP_Pin GPIO_PIN_6
 #define MOTOR_SLEEP_GPIO_Port GPIOB
 #define JOY_BTN_Pin GPIO_PIN_7
@@ -69,10 +71,16 @@ int32_t map(int32_t val, int32_t I_Min, int32_t I_Max, int32_t O_Min, int32_t O_
 #define MOTOR_IN2_Pin GPIO_PIN_9
 #define MOTOR_IN2_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
-#define LED_BLINK_PERIOD_MS 100
+#define FREERTOS_TASK_PERIOD_MS 50
 
-#define JS_AVG_FACTOR       16
-#define JS_TOLERANCE        25
+#define LED_BLINK_PERIOD_MS     100
+
+#define JS_AVG_FACTOR           16
+#define JS_TOLERANCE            15
+#define JS_IDLE_CYCLES          5
+
+#define SERVO_LIMIT_DEG         20
+#define SERVO_CORRECTION        -18
 
 /* USER CODE END Private defines */
 

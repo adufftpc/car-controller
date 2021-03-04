@@ -148,10 +148,10 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the queue(s) */
   /* creation of qMotor */
-  qMotorHandle = osMessageQueueNew (64, sizeof(uint16_t), &qMotor_attributes);
+  qMotorHandle = osMessageQueueNew (64, sizeof(int16_t), &qMotor_attributes);
 
   /* creation of qSteer */
-  qSteerHandle = osMessageQueueNew (64, sizeof(uint16_t), &qSteer_attributes);
+  qSteerHandle = osMessageQueueNew (64, sizeof(int16_t), &qSteer_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -218,7 +218,8 @@ void StartJoistickTask(void *argument)
 {
   /* USER CODE BEGIN StartJoistickTask */
   volatile uint16_t adc[2 * JS_AVG_FACTOR] = { 0, };
-  uint16_t posSteer = 0, posMotor = 0;
+  int16_t  posSteer = 0, posMotor = 0;
+  int16_t   calSteer = 0, calMotor = 0, calCycle = 0;
 
   adcReady = 0;
 
@@ -238,34 +239,59 @@ void StartJoistickTask(void *argument)
     if (adcReady) {
       adcReady = 0;
 
-      for (size_t i = 0; i < 2 * JS_AVG_FACTOR; ++i) {
-        if (i % 2)
-          adcSteer += adc[i];
-        else
-          adcMotor += adc[i];
-      }
+      if (calCycle > JS_IDLE_CYCLES) {
 
-      adcSteer = ADC_MAX_VALUE - (adcSteer / JS_AVG_FACTOR);
-      adcMotor = ADC_MAX_VALUE - (adcMotor / JS_AVG_FACTOR);
-
-      if (abs(posSteer - adcSteer) > JS_TOLERANCE) {
-        posSteer = adcSteer;
-        //xprintf(&huart1, "Steer: %4d\n", posSteer);
-      }
-      if (abs(posMotor - adcMotor) > JS_TOLERANCE) {
-        posMotor = adcMotor;
-
-        if (uxQueueSpacesAvailable(qMotorHandle)) {
-          xQueueSend(qMotorHandle, &posMotor, portMAX_DELAY);
+        for (size_t i = 0; i < 2 * JS_AVG_FACTOR; ++i) {
+          if (i % 2)
+            adcSteer += adc[i];
+          else
+            adcMotor += adc[i];
         }
 
-        //xprintf(&huart1, "Motor: %4d\n", posMotor);
-      }
+        if ((!calMotor) || (calCycle > JS_IDLE_CYCLES + 250))
+          calMotor = adcMotor / JS_AVG_FACTOR;
 
+        if ((!calSteer) || (calCycle > JS_IDLE_CYCLES + 250))
+          calSteer = adcSteer / JS_AVG_FACTOR;
+
+        adcSteer = (ADC_MAX_VALUE - (adcSteer / JS_AVG_FACTOR)) /*- calSteer*/;
+        adcMotor = (ADC_MAX_VALUE - (adcMotor / JS_AVG_FACTOR)) /*- calMotor*/;
+
+        if (abs(posSteer - adcSteer) > JS_TOLERANCE) {
+          posSteer = adcSteer;
+          if (uxQueueSpacesAvailable(qSteerHandle)) {
+            xQueueSend(qSteerHandle, &posSteer, portMAX_DELAY);
+          }
+
+          //xprintf(&huart1, "Steer: %4d\n", posSteer);
+        }
+        if (abs(posMotor - adcMotor) > JS_TOLERANCE) {
+          posMotor = adcMotor;
+
+          if (uxQueueSpacesAvailable(qMotorHandle)) {
+            xQueueSend(qMotorHandle, &posMotor, portMAX_DELAY);
+          }
+
+          //xprintf(&huart1, "Motor: %4d\n", posMotor);
+        }
+
+        /*if ((posSteer == adcSteer) && (posMotor == adcMotor) &&
+            (posSteer < 100) && (posMotor < 100))
+          calCycle++;
+        else
+          calCycle = JS_IDLE_CYCLES + 1;
+        */
+
+        //xprintf(&huart1, "Motor: %5d; Steer: %5d\n", posMotor, posSteer);
+
+      }
+      else {
+        calCycle++;
+      }
       HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t*)&adc, JS_AVG_FACTOR);
     }
 
-    osDelay(50 / portTICK_PERIOD_MS);
+    osDelay(FREERTOS_TASK_PERIOD_MS / portTICK_PERIOD_MS);
   }
   /* USER CODE END StartJoistickTask */
 }
@@ -280,6 +306,7 @@ void StartJoistickTask(void *argument)
 void StartMotorTask(void *argument)
 {
   /* USER CODE BEGIN StartMotorTask */
+  uint32_t arr = TIM4->ARR + 1;
   uint16_t code;
   int16_t throttle = 0;
 
@@ -294,17 +321,18 @@ void StartMotorTask(void *argument)
     if (uxQueueMessagesWaiting(qMotorHandle)) {
       if (pdPASS == xQueueReceive(qMotorHandle, &code, portMAX_DELAY)) {
         // Forward slow decay
-        if (code >= ((ADC_MAX_VALUE / 2) + JS_TOLERANCE)) {
-          throttle = (code * (TIM4->ARR + 1 + 50) / ADC_MAX_VALUE) / 2;
-          throttle = constrain(throttle, 0, (TIM4->ARR + 1));
+        if (code >= ((ADC_MAX_VALUE / 2) + JS_TOLERANCE * 2)) {
+
+          throttle = map(code, ADC_MAX_VALUE / 2, ADC_MAX_VALUE, arr / 3, arr);
+          throttle = constrain(throttle, 0, arr);
 
           TIM4->CCR3 = 0;
           TIM4->CCR4 = throttle;
           HAL_GPIO_WritePin(MOTOR_SLEEP_GPIO_Port, MOTOR_SLEEP_Pin, GPIO_PIN_SET);
         }
-        else if (code < ((ADC_MAX_VALUE / 2) - JS_TOLERANCE)) {
-          throttle = ((ADC_MAX_VALUE / 2) - (code * (TIM4->ARR + 1 + 50) / ADC_MAX_VALUE)) / 2;
-          throttle = constrain(throttle, 0, (TIM4->ARR + 1));
+        else if (code < ((ADC_MAX_VALUE / 2) - JS_TOLERANCE * 2)) {
+          throttle = map(code, 0, ADC_MAX_VALUE / 2, arr / 2, arr / 4);
+          throttle = constrain(throttle, 0, arr);
 
           TIM4->CCR3 = throttle;
           TIM4->CCR4 = 0;
@@ -317,11 +345,11 @@ void StartMotorTask(void *argument)
           TIM4->CCR4 = 0;
           HAL_GPIO_WritePin(MOTOR_SLEEP_GPIO_Port, MOTOR_SLEEP_Pin, GPIO_PIN_RESET);
         }
-        xprintf(&huart1, "Motor code: %4d; throttle: %4d\n", code, throttle);
+        //xprintf(&huart1, "Motor code: %4d; throttle: %4d\n", code, throttle);
       }
     }
 
-    osDelay(50 / portTICK_PERIOD_MS);
+    osDelay(FREERTOS_TASK_PERIOD_MS / portTICK_PERIOD_MS);
   }
   /* USER CODE END StartMotorTask */
 }
@@ -336,10 +364,35 @@ void StartMotorTask(void *argument)
 void StartSteerTask(void *argument)
 {
   /* USER CODE BEGIN StartSteerTask */
+  uint32_t arr = TIM3->ARR + 1;
+  uint16_t code, pwmCode, correction = -10000;
+  uint8_t angle;
+
+  xprintf(&huart1, "Starting Steering PWM...\n");
+
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+
+  TIM3->CCR1 = arr / 20;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    if (uxQueueMessagesWaiting(qSteerHandle)) {
+      if (pdPASS == xQueueReceive(qSteerHandle, &code, portMAX_DELAY)) {
+
+        angle = map(code,
+            0, ADC_MAX_VALUE,
+            SERVO_LIMIT_DEG + SERVO_CORRECTION, 180 - SERVO_LIMIT_DEG + SERVO_CORRECTION);
+        angle = constrain(angle, SERVO_LIMIT_DEG, 180 - SERVO_LIMIT_DEG);
+
+        pwmCode = map(angle, 0, 180, arr / 50, arr / 9);
+        pwmCode = constrain(pwmCode, arr / 50, arr / 9);
+
+        TIM3->CCR1 = pwmCode;
+      }
+      xprintf(&huart1, "Steer code: %4d; angle: %4d, PWM code: %4d\n", code, angle, pwmCode);
+    }
+
+    osDelay(FREERTOS_TASK_PERIOD_MS / portTICK_PERIOD_MS);
   }
   /* USER CODE END StartSteerTask */
 }
