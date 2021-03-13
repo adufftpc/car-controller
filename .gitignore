@@ -1,10 +1,23 @@
+# Artifacts
 *.elf
 *.hex
 *.map
 *.lst
 *.o
 *.d
-*.rar
-*.zip
 *.bin
 *.list
+
+# Archives and Docs
+*.rar
+*.zip
+*.pdf
+
+# Eclipse related stuff
+[Dd]ebug
+[Rr]elease
+.settings/
+*.launch
+.cproject
+.mxproject
+.project

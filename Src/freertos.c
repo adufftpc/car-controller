@@ -330,14 +330,16 @@ void StartMotorTask(void *argument)
           TIM4->CCR4 = throttle;
           HAL_GPIO_WritePin(MOTOR_SLEEP_GPIO_Port, MOTOR_SLEEP_Pin, GPIO_PIN_SET);
         }
+        // Reverse slow decay
         else if (code < ((ADC_MAX_VALUE / 2) - JS_TOLERANCE * 2)) {
-          throttle = map(code, 0, ADC_MAX_VALUE / 2, arr / 2, arr / 4);
+          throttle = map(code, 0, ADC_MAX_VALUE / 2, arr, arr / 3);
           throttle = constrain(throttle, 0, arr);
 
           TIM4->CCR3 = throttle;
           TIM4->CCR4 = 0;
           HAL_GPIO_WritePin(MOTOR_SLEEP_GPIO_Port, MOTOR_SLEEP_Pin, GPIO_PIN_SET);
         }
+        //Stop
         else {
           throttle = 0;
 
@@ -389,7 +391,7 @@ void StartSteerTask(void *argument)
 
         TIM3->CCR1 = pwmCode;
       }
-      xprintf(&huart1, "Steer code: %4d; angle: %4d, PWM code: %4d\n", code, angle, pwmCode);
+      //xprintf(&huart1, "Steer code: %4d; angle: %4d, PWM code: %4d\n", code, angle, pwmCode);
     }
 
     osDelay(FREERTOS_TASK_PERIOD_MS / portTICK_PERIOD_MS);

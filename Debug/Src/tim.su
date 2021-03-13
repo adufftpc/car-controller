@@ -2,6 +2,6 @@ tim.c:31:6:MX_TIM3_Init	48	static
 tim.c:64:6:MX_TIM4_Init	64	static
 tim.c:111:6:HAL_TIM_PWM_MspInit	24	static
 tim.c:127:6:HAL_TIM_Base_MspInit	24	static
-tim.c:142:6:HAL_TIM_MspPostInit	40	static
-tim.c:187:6:HAL_TIM_PWM_MspDeInit	16	static
-tim.c:203:6:HAL_TIM_Base_MspDeInit	16	static
+tim.c:142:6:HAL_TIM_MspPostInit	48	static
+tim.c:189:6:HAL_TIM_PWM_MspDeInit	16	static
+tim.c:205:6:HAL_TIM_Base_MspDeInit	16	static
